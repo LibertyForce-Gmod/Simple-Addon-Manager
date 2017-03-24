@@ -6,7 +6,7 @@ http://steamcommunity.com/id/libertyforce/
 
 --]]
 
-local Version = "1.1" -- REQUIRES UPDATING VERSION.TXT
+local Version = "1.1.1" -- REQUIRES UPDATING VERSION.TXT
 
 local VersionLatest
 local VersionNotify = false
@@ -280,6 +280,7 @@ function Menu.Setup()
 	Menu.Tags = Menu.Right:Add( "DComboBox" )
 	Menu.Tags:Dock( TOP )
 	Menu.Tags:DockMargin( 0, 0, 0, 20 )
+	Menu.Tags:SetSortItems( false )
 	
 	function Menu.Tags.Populate()
 		Menu.Tags:Clear()
