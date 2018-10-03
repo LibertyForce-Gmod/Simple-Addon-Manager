@@ -13,5 +13,6 @@ include( "menu_dupe.lua" )
 include( "errors.lua" )
 
 include( "motionsensor.lua" )
+include( "util.lua" )
 
 include( "lf_simple_addon_manager.lua" ) -- Simple Addon Manager by LibertyForce
