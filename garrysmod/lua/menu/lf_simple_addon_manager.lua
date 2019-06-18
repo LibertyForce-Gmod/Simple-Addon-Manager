@@ -763,7 +763,7 @@ function Menu.Setup()
 						end
 					end
 					Search(arg)
-					timer.Remove("wow_addoncheck_"..num)
+					timer.Remove("collecion_check_"..num)
 				end
 			end)
 		else
