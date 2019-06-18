@@ -561,174 +561,214 @@ function Menu.Setup()
 			end
 		end
 		
-		local function IsFilter( k, v )
+		local function IsFilter( k, v,arg)
 			if not AddonFilter or AddonFilter == "" then
 				return true
 			else
-				local title = v.title
-				if v.customname then title = v.customname .. "     { " .. title .. " }" end
-				local tbl = string.Split( AddonFilter, " " )
-				for _, substr in pairs( tbl ) do
-					if not string.match( title:lower(), string.PatternSafe( substr:lower() ) ) then
-						return false
+				if arg then
+					if k == arg then
+						return true
+					elseif istable(arg) then
+						local K = tostring(k) -- values inside the arg table are strings so i'm doing this
+						return table.HasValue(arg,K)
 					end
-				end
-				return true
-			end
-		end
-		
-		for k, v in pairs( Addons ) do
-			if IsCat( k, v ) and IsTag( k, v ) and IsFilter( k, v ) then
-				local enabled = ""
-				if v.active then enabled = "✔" end
-				local title = v.title
-				if v.customname then title = v.customname .. "     { " .. title .. " }" end
-				table.insert( AddonsReadable, { k, enabled, title, table.concat( v.tags, "; " ), v.cat } )
-			end
-		end
-		
-		table.sort( AddonsReadable, function( a, b )
-			local a1, b1 = a[1], b[1]
-			local a2, b2 = a[2], b[2]
-			local a3, b3 = string.lower( a[3] ), string.lower( b[3] )
-			local a4, b4 = string.lower( a[4] ), string.lower( b[4] )
-			
-			if SortType == 3 or SortType == 4 or SortType == 5 then -- Sort by Enabled
-				if a2 ~= b2 then return a2 > b2; end
-			end
-			if SortType == 2 or SortType == 5 then -- Sort by Tags
-				if a4 ~= b4 then return a4 < b4; end
-			end
-			if SortType == 1 or SortType == 2 or SortType == 4 or SortType == 5 then -- Sort by Name
-				if a3 ~= b3 then return a3 < b3; end
-			end
-			return a1 < b1; -- Always sort by ID
-		end )
-		
-		for k, v in pairs( AddonsReadable ) do
-			
-			local id = v[1]
-			Menu.List[id] = { }
-			
-			Menu.List[id].panel = Menu.Scroll:Add( "DButton" )
-			Menu.List[id].panel:Dock( TOP )
-			Menu.List[id].panel:SetHeight( 35 )
-			Menu.List[id].panel:DockMargin( 2, 0, 2, 4 )
-			--Menu.List[id].panel:DockPadding( 3, 3, 3, 3 )
-			Menu.List[id].panel:SetText( "" )
-			Menu.List[id].panel.index = k
-			
-			Menu.List[id].panel.color = color_normal
-			if Selected_Addons[id] then Menu.List[id].panel.color = color_selected end
-			Menu.List[id].panel.Paint = function( self, w, h )
-				draw.RoundedBox( 15, 0, 0, w, h, Menu.List[id].panel.color ) return true
-			end
-			
-			Menu.List[id].panel.DoClick = function()
-				if input.IsKeyDown( KEY_LSHIFT ) then
-					local first = math.min( k, last_selected )
-					local last = math.max( k, last_selected )
-					local line_select = true
-					if not Selected_Addons[id] then line_select = false end
-					for index = first, last do
-						local tbl = AddonsReadable[index]
-						local line_id = tbl[1]
-						if not line_select then
-							Selected_Addons[line_id] = true
-							Menu.List[line_id].panel.color = color_selected
-						else
-							Selected_Addons[line_id] = nil
-							Menu.List[line_id].panel.color = color_normal
+					return false
+				else
+					local title = v.title
+					if v.customname then title = v.customname .. "     { " .. title .. " }" end
+					local tbl = string.Split( AddonFilter, " " )
+					for _, substr in pairs( tbl ) do
+						if not string.match( title:lower(), string.PatternSafe( substr:lower() ) ) then
+							return false
 						end
 					end
-				else
-					if not Selected_Addons[id] then
-						Selected_Addons[id] = true
-						Menu.List[id].panel.color = color_selected
+					return true
+				end
+			end
+		end
+		
+		local function Search(arg) -- made that a function to make stuff easier
+			for k, v in pairs( Addons ) do
+				if IsCat( k, v ) and IsTag( k, v ) and IsFilter( k, v ,arg) then
+					local enabled = ""
+					if v.active then enabled = "✔" end
+					local title = v.title
+					if v.customname then title = v.customname .. "     { " .. title .. " }" end
+					table.insert( AddonsReadable, { k, enabled, title, table.concat( v.tags, "; " ), v.cat } )
+				end
+			end
+				
+			table.sort( AddonsReadable, function( a, b )
+				local a1, b1 = a[1], b[1]
+				local a2, b2 = a[2], b[2]
+				local a3, b3 = string.lower( a[3] ), string.lower( b[3] )
+				local a4, b4 = string.lower( a[4] ), string.lower( b[4] )
+				
+				if SortType == 3 or SortType == 4 or SortType == 5 then -- Sort by Enabled
+					if a2 ~= b2 then return a2 > b2; end
+				end
+				if SortType == 2 or SortType == 5 then -- Sort by Tags
+					if a4 ~= b4 then return a4 < b4; end
+				end
+				if SortType == 1 or SortType == 2 or SortType == 4 or SortType == 5 then -- Sort by Name
+					if a3 ~= b3 then return a3 < b3; end
+				end
+				return a1 < b1; -- Always sort by ID
+			end )
+			
+			for k, v in pairs( AddonsReadable ) do
+				
+				local id = v[1]
+				Menu.List[id] = { }
+				
+				Menu.List[id].panel = Menu.Scroll:Add( "DButton" )
+				Menu.List[id].panel:Dock( TOP )
+				Menu.List[id].panel:SetHeight( 35 )
+				Menu.List[id].panel:DockMargin( 2, 0, 2, 4 )
+				--Menu.List[id].panel:DockPadding( 3, 3, 3, 3 )
+				Menu.List[id].panel:SetText( "" )
+				Menu.List[id].panel.index = k
+				
+				Menu.List[id].panel.color = color_normal
+				if Selected_Addons[id] then Menu.List[id].panel.color = color_selected end
+				Menu.List[id].panel.Paint = function( self, w, h )
+					draw.RoundedBox( 15, 0, 0, w, h, Menu.List[id].panel.color ) return true
+				end
+				
+				Menu.List[id].panel.DoClick = function()
+					if input.IsKeyDown( KEY_LSHIFT ) then
+						local first = math.min( k, last_selected )
+						local last = math.max( k, last_selected )
+						local line_select = true
+						if not Selected_Addons[id] then line_select = false end
+						for index = first, last do
+							local tbl = AddonsReadable[index]
+							local line_id = tbl[1]
+							if not line_select then
+								Selected_Addons[line_id] = true
+								Menu.List[line_id].panel.color = color_selected
+							else
+								Selected_Addons[line_id] = nil
+								Menu.List[line_id].panel.color = color_normal
+							end
+						end
 					else
-						Selected_Addons[id] = nil
-						Menu.List[id].panel.color = color_normal
+						if not Selected_Addons[id] then
+							Selected_Addons[id] = true
+							Menu.List[id].panel.color = color_selected
+						else
+							Selected_Addons[id] = nil
+							Menu.List[id].panel.color = color_normal
+						end
+						last_selected = k
 					end
-					last_selected = k
-				end
-				Menu.NoSelectedAddons.Count()
-			end
-			
-			Menu.List[id].panel.DoRightClick = function()
-				local ContextMenu = Menu.List[id].panel:Add( "DMenu" )
-				
-				ContextMenu:AddOption( "Open Workshop", function()
-					gui.OpenURL( "https://steamcommunity.com/sharedfiles/filedetails/?id=" .. tostring( id ) )
-				end ):SetIcon( "icon16/world_go.png" )
-				ContextMenu:AddOption( "Copy URL", function()
-					SetClipboardText( "https://steamcommunity.com/sharedfiles/filedetails/?id=" .. tostring( id ) )
-				end ):SetIcon( "icon16/page_link.png" )
-				ContextMenu:AddOption( "Copy ID", function()
-					SetClipboardText( tostring( id ) )
-				end ):SetIcon( "icon16/script_code.png" )
-				
-				ContextMenu:AddSpacer()
-				
-				ContextMenu:AddOption( "Add custom name", function()
-					AddonSetCustomname( id )
-				end ):SetIcon( "icon16/textfield_add.png" )
-				
-				if Addons[id].customname then
-					ContextMenu:AddOption( "Remove custom name", function()
-						Addons[id].customname = nil
-						GetAddons()
-					end ):SetIcon( "icon16/textfield_delete.png" )
+					Menu.NoSelectedAddons.Count()
 				end
 				
-				ContextMenu:Open()
+				Menu.List[id].panel.DoRightClick = function()
+					local ContextMenu = Menu.List[id].panel:Add( "DMenu" )
+					
+					ContextMenu:AddOption( "Open Workshop", function()
+						gui.OpenURL( "https://steamcommunity.com/sharedfiles/filedetails/?id=" .. tostring( id ) )
+					end ):SetIcon( "icon16/world_go.png" )
+					ContextMenu:AddOption( "Copy URL", function()
+						SetClipboardText( "https://steamcommunity.com/sharedfiles/filedetails/?id=" .. tostring( id ) )
+					end ):SetIcon( "icon16/page_link.png" )
+					ContextMenu:AddOption( "Copy ID", function()
+						SetClipboardText( tostring( id ) )
+					end ):SetIcon( "icon16/script_code.png" )
+					
+					ContextMenu:AddSpacer()
+					
+					ContextMenu:AddOption( "Add custom name", function()
+						AddonSetCustomname( id )
+					end ):SetIcon( "icon16/textfield_add.png" )
+					
+					if Addons[id].customname then
+						ContextMenu:AddOption( "Remove custom name", function()
+							Addons[id].customname = nil
+							GetAddons()
+						end ):SetIcon( "icon16/textfield_delete.png" )
+					end
+					
+					ContextMenu:Open()
+				end
+				
+				Menu.List[id].checkbox = Menu.List[id].panel:Add( "DCheckBox" )
+				Menu.List[id].checkbox:SetPos( 10, 10 )
+				Menu.List[id].checkbox:SetChecked( Addons[id].active )
+				Menu.List[id].checkbox.DoClick = function()
+					local value = not Addons[id].active
+					steamworks.SetShouldMountAddon( id, value )
+					Addons[id].active = value
+					steamworks.ApplyAddons()
+					Menu.Populate()
+				end
+				
+				Menu.List[id].name = Menu.List[id].panel:Add( "DLabel" )
+				Menu.List[id].name:SetPos( 40, 3 )
+				Menu.List[id].name:SetSize( 530, 16 )
+				Menu.List[id].name:SetAutoStretchVertical( false )
+				Menu.List[id].name:SetFont( "Font_AddonTitle" )
+				Menu.List[id].name:SetText( v[3] )
+				Menu.List[id].name:SetDark( true )
+				Menu.List[id].name:SetWrap( false )
+				
+				Menu.List[id].idno = Menu.List[id].panel:Add( "DLabel" )
+				Menu.List[id].idno:SetPos( 580, 3 )
+				Menu.List[id].idno:SetSize( 80, 13 )
+				Menu.List[id].idno:SetAutoStretchVertical( false )
+				Menu.List[id].idno:SetText( v[1] )
+				Menu.List[id].idno:SetDark( true )
+				Menu.List[id].idno:SetWrap( false )
+				
+				Menu.List[id].tags = Menu.List[id].panel:Add( "DLabel" )
+				Menu.List[id].tags:SetPos( 40, 20 )
+				Menu.List[id].tags:SetSize( 530, 13 )
+				Menu.List[id].tags:SetAutoStretchVertical( false )
+				Menu.List[id].tags:SetText( v[4] )
+				Menu.List[id].tags:SetDark( true )
+				Menu.List[id].tags:SetWrap( false )
+				
+				Menu.List[id].cat = Menu.List[id].panel:Add( "DLabel" )
+				Menu.List[id].cat:SetPos( 580, 20 )
+				Menu.List[id].cat:SetSize( 80, 13 )
+				Menu.List[id].cat:SetAutoStretchVertical( false )
+				Menu.List[id].cat:SetText( v[5] )
+				Menu.List[id].cat:SetDark( true )
+				Menu.List[id].cat:SetWrap( false )
+				
 			end
-			
-			Menu.List[id].checkbox = Menu.List[id].panel:Add( "DCheckBox" )
-			Menu.List[id].checkbox:SetPos( 10, 10 )
-			Menu.List[id].checkbox:SetChecked( Addons[id].active )
-			Menu.List[id].checkbox.DoClick = function()
-				local value = not Addons[id].active
-				steamworks.SetShouldMountAddon( id, value )
-				Addons[id].active = value
-				steamworks.ApplyAddons()
-				Menu.Populate()
-			end
-			
-			Menu.List[id].name = Menu.List[id].panel:Add( "DLabel" )
-			Menu.List[id].name:SetPos( 40, 3 )
-			Menu.List[id].name:SetSize( 530, 16 )
-			Menu.List[id].name:SetAutoStretchVertical( false )
-			Menu.List[id].name:SetFont( "Font_AddonTitle" )
-			Menu.List[id].name:SetText( v[3] )
-			Menu.List[id].name:SetDark( true )
-			Menu.List[id].name:SetWrap( false )
-			
-			Menu.List[id].idno = Menu.List[id].panel:Add( "DLabel" )
-			Menu.List[id].idno:SetPos( 580, 3 )
-			Menu.List[id].idno:SetSize( 80, 13 )
-			Menu.List[id].idno:SetAutoStretchVertical( false )
-			Menu.List[id].idno:SetText( v[1] )
-			Menu.List[id].idno:SetDark( true )
-			Menu.List[id].idno:SetWrap( false )
-			
-			Menu.List[id].tags = Menu.List[id].panel:Add( "DLabel" )
-			Menu.List[id].tags:SetPos( 40, 20 )
-			Menu.List[id].tags:SetSize( 530, 13 )
-			Menu.List[id].tags:SetAutoStretchVertical( false )
-			Menu.List[id].tags:SetText( v[4] )
-			Menu.List[id].tags:SetDark( true )
-			Menu.List[id].tags:SetWrap( false )
-			
-			Menu.List[id].cat = Menu.List[id].panel:Add( "DLabel" )
-			Menu.List[id].cat:SetPos( 580, 20 )
-			Menu.List[id].cat:SetSize( 80, 13 )
-			Menu.List[id].cat:SetAutoStretchVertical( false )
-			Menu.List[id].cat:SetText( v[5] )
-			Menu.List[id].cat:SetDark( true )
-			Menu.List[id].cat:SetWrap( false )
 			
 		end
 		
+		local num = tonumber(AddonFilter) -- returns nil if the shit isn't a number
+		local arg = num
+		if num then -- check if it's worth it to check all of that shit
+			local Item
+			steamworks.FileInfo(num,function(item)
+				if item.error != 0 then -- error codes that are different from 0 are errors
+					Item = item
+				else
+					Item = "fuck" -- lol
+				end
+			end)
+			
+			timer.Create("collecion_check_"..num,0,0,function() -- timer cuz item will be defined in a later tick depending on the client's internet connection
+				if Item then
+					if Item != "fuck" and table.Count(Item.children) > 0 then -- checks if it exists and has children because collections have children
+						local tag = string.Explode(",",Item.tags)[1]
+						if tag != "Addon" and tag != "Dupe" then -- collections don't have these tags
+							arg  = Item.children
+						end
+					end
+					Search(arg)
+					timer.Remove("wow_addoncheck_"..num)
+				end
+			end)
+		else
+			Search(arg)
+		end
 	end
 	
 	function Menu.PopulateTags()
