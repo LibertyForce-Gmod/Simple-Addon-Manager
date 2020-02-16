@@ -6,11 +6,11 @@ http://steamcommunity.com/id/libertyforce/
 
 --]]
 
-local Version = "2.0.0" -- REQUIRES UPDATING VERSION.TXT
+local Version = "2.1.0" -- REQUIRES UPDATING VERSION.TXT
 
 local VersionLatest
 local VersionNotify = false
-local WorkshopReady = false
+WorkshopReady = false
 local Addons
 local SaveData
 local InstallData
@@ -44,6 +44,94 @@ local function Save()
 	end
 	file.Write( savefile, util.TableToJSON( SaveData, true ) )
 	SaveData = nil
+end
+	
+local function LuaRun()
+	local space = "    "
+	local DFrame = vgui.Create("DFrame")
+	local X,Y = ScrW()*0.4,ScrH()*0.7
+	DFrame:SetSize(X,Y)
+	DFrame:Center()
+	DFrame:MakePopup()
+	DFrame:SetTitle("LUA Interpreter")
+	
+	local DTextEntry = vgui.Create("DTextEntry",DFrame)
+	DTextEntry:Dock(FILL)
+	DTextEntry:DockMargin(0,0,0,Y*0.05)
+	DTextEntry:SetMultiline(true)
+	
+	local function TableToString(tab)
+		local str = ""
+		for k,v in pairs(tab) do
+			str = str..v
+		end
+		return str
+	end
+	
+	DTextEntry.OnKeyCode = function(DTextEntry,code)
+		if code == KEY_TAB then
+			local val = DTextEntry:GetValue()
+			local tab = string.ToTable(val)
+			local pos = DTextEntry:GetCaretPos()
+			
+			local str_before = {}
+			local str_after = {}
+			for i = 1,pos do
+				table.insert(str_before,tab[i])
+			end
+			for i = pos+1,#tab do
+				table.insert(str_after,tab[i])
+			end
+			
+			str_before = TableToString(str_before)
+			str_after = TableToString(str_after)
+			
+			val = str_before..space..str_after
+			tab = string.ToTable(val)
+			
+			DTextEntry:SetText(val)
+			DTextEntry.CaretPos = pos + 4
+			
+			DTextEntry.NeedFocus = true
+		end
+	end
+	DTextEntry.OnFocusChanged = function(DTextEntry,gained)
+		if !gained and DTextEntry.NeedFocus then
+			DTextEntry:RequestFocus()
+		elseif gained and DTextEntry.NeedFocus then
+			DTextEntry.NeedFocus = false
+			DTextEntry:SetCaretPos(DTextEntry.CaretPos)
+		end
+	end
+
+	local X_1,Y_1 = X*0.3,Y*0.05
+	local DButton = vgui.Create("DButton",DFrame)
+	DButton:SetSize(X_1,Y_1)
+	DButton:SetPos(X*0.02,Y*0.945)
+	DButton:SetText("Run this code client side")
+	DButton.DoClick = function()
+		RunString(DTextEntry:GetValue())
+	end
+	local DButton = vgui.Create("DButton",DFrame)
+	DButton:SetSize(X_1,Y_1)
+	DButton:SetPos(X*0.34,Y*0.945)
+	DButton:SetText("Run this code client and server side")
+	DButton.DoClick = function()
+		local val = DTextEntry:GetValue()
+		net.Start("gred_net_lua_interpreter")
+			net.WriteString(val)
+		net.SendToServer()
+		RunString(val)
+	end
+	local DButton = vgui.Create("DButton",DFrame)
+	DButton:SetSize(X_1,Y_1)
+	DButton:SetPos(X*0.66,Y*0.945)
+	DButton:SetText("Run this code server side")
+	DButton.DoClick = function()
+		net.Start("gred_net_lua_interpreter")
+			net.WriteString(DTextEntry:GetValue())
+		net.SendToServer()
+	end
 end
 
 local function InitAddons()
@@ -532,7 +620,6 @@ function Menu.Setup()
 		b2.DoClick = function() f:Close() end
 	end
 	
-	
 	function Menu.Populate()
 	
 		Menu.Scroll:Clear()
@@ -569,8 +656,7 @@ function Menu.Setup()
 					if k == arg then
 						return true
 					elseif istable(arg) then
-						local K = tostring(k) -- values inside the arg table are strings so i'm doing this
-						return table.HasValue(arg,K)
+						return table.HasValue(arg,k) or table.HasValue(arg,tostring(k))
 					end
 					return false
 				else
@@ -1025,6 +1111,7 @@ function Menu.Setup()
 		ContextMenu:AddOption( "Uninstall Selected", AddonDeleteSelected ):SetIcon( "icon16/bin.png" )
 		ContextMenu:AddOption( "Give LIKE to Selected", AddonLikeSelected ):SetIcon( "icon16/thumb_up.png" )
 		ContextMenu:AddOption( "Remove all custom names", AddonRemoveCustomnames ):SetIcon( "icon16/textfield_delete.png" )
+		ContextMenu:AddOption( "Run LUA code", LuaRun ):SetIcon( "icon16/application_xp_terminal.png" )
 		ContextMenu.OnClose = function() print( "TEST" ) end
 	end
 	
@@ -1118,3 +1205,5 @@ surface.CreateFont( "Font_AddonTitle", {
 
 concommand.Add("addon_manager", Menu.Setup )
 concommand.Add("addons", Menu.Setup )
+concommand.Add("reload_menu", function() include("menu/lf_simple_addon_manager.lua") end)
+concommand.Add("lua_interpreter", LuaRun )
