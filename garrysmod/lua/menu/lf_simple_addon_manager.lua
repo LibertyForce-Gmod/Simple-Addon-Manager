@@ -10,7 +10,7 @@ local Version = "2.1.0" -- REQUIRES UPDATING VERSION.TXT
 
 local VersionLatest
 local VersionNotify = false
-WorkshopReady = false
+
 local Addons
 local SaveData
 local InstallData
@@ -45,7 +45,8 @@ local function Save()
 	file.Write( savefile, util.TableToJSON( SaveData, true ) )
 	SaveData = nil
 end
-	
+
+
 local function LuaRun()
 	local space = "    "
 	local DFrame = vgui.Create("DFrame")
@@ -673,6 +674,21 @@ function Menu.Setup()
 			end
 		end
 		
+
+		local function RetrieveItemId(AddonFilter)
+			local itemId = tonumber(AddonFilter)
+
+			if not itemId then
+				local splittedURL = string.Explode("id=", AddonFilter)[2]
+
+				if splittedURL then
+					itemId = tonumber(string.Explode("[^Z0-9]", splittedURL, true)[1]) -- separator is "anything that isn't a digit"
+				end
+			end
+
+			return itemId
+		end
+
 		local function Search(arg) -- made that a function to make stuff easier
 			for k, v in pairs( Addons ) do
 				if IsCat( k, v ) and IsTag( k, v ) and IsFilter( k, v ,arg) then
@@ -827,33 +843,29 @@ function Menu.Setup()
 			end
 			
 		end
-		
-		local num = tonumber(AddonFilter) -- returns nil if the shit isn't a number
-		local arg = num
-		if num then -- check if it's worth it to check all of that shit
-			local Item
-			steamworks.FileInfo(num,function(item)
+
+		local function SearchItem(itemId)
+			steamworks.FileInfo(itemId, function(item)
 				if item.error != 0 then -- error codes that are different from 0 are errors
-					Item = item
-				else
-					Item = "fuck" -- lol
-				end
-			end)
-			
-			timer.Create("collecion_check_"..num,0,0,function() -- timer cuz item will be defined in a later tick depending on the client's internet connection
-				if Item then
-					if Item != "fuck" and table.Count(Item.children) > 0 then -- checks if it exists and has children because collections have children
-						local tag = string.Explode(",",Item.tags)[1]
-						if tag != "Addon" and tag != "Dupe" then -- collections don't have these tags
-							arg  = Item.children
-						end
+					
+					if #item.children > 0 and item.fileid != "0" then
+						Search(item.children)
+					else
+						Search(itemId)
 					end
-					Search(arg)
-					timer.Remove("collecion_check_"..num)
+				else
+					ErrorNoHalt("Error "..item.error" retrieving item id="..itemId)
 				end
 			end)
+		end
+		
+		
+		local itemId = RetrieveItemId(AddonFilter)
+		
+		if itemId then
+			SearchItem(itemId)
 		else
-			Search(arg)
+			Search()
 		end
 	end
 	
